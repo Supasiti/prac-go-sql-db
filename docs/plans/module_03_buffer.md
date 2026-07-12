@@ -1,4 +1,4 @@
-# Module 4: Buffer Pool
+# Module 3: Buffer Pool
 
 ## Files
 

@@ -1,4 +1,4 @@
-# Module 3: Type-Safe Query Builder
+# Module 4: Type-Safe Query Builder
 
 ## Files
 

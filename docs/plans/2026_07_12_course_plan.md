@@ -326,14 +326,14 @@ result, err := db.Find[User]().
 |---|--------|-----------|-------------|
 | 1 | Storage Engine Interface | — | Page-based pluggable storage |
 | 2 | Schema & Type System | 1 | Struct → table mapping |
-| 3 | Query Builder | 2 | Type-safe fluent API |
-| 4 | Buffer Pool | 1 | In-memory page cache |
-| 5 | WAL | 1, 4 | Crash recovery |
-| 6 | B-Tree Index | 1, 4 | Fast lookups |
-| 7 | MVCC Transactions | 1, 4, 5 | Snapshot isolation |
-| 8 | Query Executor | 2, 3, 6 | Operator pipeline |
+| 3 | Buffer Pool | 1 | In-memory page cache |
+| 4 | Query Builder | 2, 3 | Type-safe fluent API |
+| 5 | WAL | 1, 3 | Crash recovery |
+| 6 | B-Tree Index | 1, 3 | Fast lookups |
+| 7 | MVCC Transactions | 1, 3, 5 | Snapshot isolation |
+| 8 | Query Executor | 2, 4, 6 | Operator pipeline |
 | 9 | S3 Backend | 1 | Storage swap proof |
-| 10 | Concurrency | 4, 6, 7 | Parallel access |
+| 10 | Concurrency | 3, 6, 7 | Parallel access |
 
 ## Testing Strategy
 
