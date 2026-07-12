@@ -31,11 +31,8 @@ func TestCreateNewFile(t *testing.T) {
 	if engine.header.Magic != magic {
 		t.Errorf("magic = %v, want %v", engine.header.Magic, magic)
 	}
-	if engine.header.PageCount != 0 {
-		t.Errorf("page count = %d, want 0", engine.header.PageCount)
-	}
-	if engine.header.SchemaPageCount != 0 {
-		t.Errorf("schema page count = %d, want 0", engine.header.SchemaPageCount)
+	if engine.header.PageCount != SchemaPages {
+		t.Errorf("page count = %d, want %d", engine.header.PageCount, SchemaPages)
 	}
 	if engine.header.Version != 1 {
 		t.Errorf("version = %d, want 1", engine.header.Version)
@@ -52,13 +49,13 @@ func TestAllocatePages(t *testing.T) {
 	}
 	defer engine.Close()
 
-	for i := types.PageID(0); i < 5; i++ {
+	for i := 0; i < 5; i++ {
 		id, err := engine.AllocatePage()
 		if err != nil {
 			t.Fatal(err)
 		}
-		if id != i {
-			t.Errorf("allocated id = %d, want %d", id, i)
+		if id != types.PageID(SchemaPages+i) {
+			t.Errorf("allocated id = %d, want %d", id, SchemaPages+i)
 		}
 	}
 }
@@ -104,7 +101,8 @@ func TestReadUnallocatedPage(t *testing.T) {
 	}
 	defer engine.Close()
 
-	_, err = engine.ReadPage(0)
+	// Page 0..3 are schema pages (allocated), page 4+ are unallocated
+	_, err = engine.ReadPage(types.PageID(SchemaPages))
 	if err != ErrPageNotFound {
 		t.Errorf("expected ErrPageNotFound, got %v", err)
 	}
@@ -186,8 +184,8 @@ func TestCloseReopen(t *testing.T) {
 	}
 	defer engine2.Close()
 
-	if engine2.header.PageCount != 1 {
-		t.Errorf("page count after reopen = %d, want 1", engine2.header.PageCount)
+	if engine2.header.PageCount != uint64(SchemaPages+1) {
+		t.Errorf("page count after reopen = %d, want %d", engine2.header.PageCount, SchemaPages+1)
 	}
 
 	got, err := engine2.ReadPage(id)

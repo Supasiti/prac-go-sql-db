@@ -103,23 +103,9 @@ func (s *Schema) save() error {
 
 	data := buf.Bytes()
 	totalLen := len(data)
-	needed := uint64((totalLen + 4 + types.PageSize - 1) / types.PageSize) // +4 for length prefix
-
-	// Get current schema page count
-	currentSchemaPages := s.engine.(*storage.LocalFileEngine).SchemaPageCount()
-
-	// Allocate additional pages if needed
-	for i := uint64(currentSchemaPages); i < needed; i++ {
-		if _, err := s.engine.(*storage.LocalFileEngine).AllocateSchemaPage(); err != nil {
-			return fmt.Errorf("allocate schema page: %w", err)
-		}
-	}
-
-	// Update schema page count in header
-	if needed > currentSchemaPages {
-		if err := s.engine.(*storage.LocalFileEngine).SetSchemaPageCount(needed); err != nil {
-			return fmt.Errorf("set schema page count: %w", err)
-		}
+	maxPayload := storage.SchemaPages * types.PageSize
+	if 4+totalLen > maxPayload {
+		return fmt.Errorf("schema too large: %d bytes, max %d", totalLen, maxPayload-4)
 	}
 
 	// Write length prefix + data
@@ -127,17 +113,26 @@ func (s *Schema) save() error {
 	binary.LittleEndian.PutUint32(payload[:4], uint32(totalLen))
 	copy(payload[4:], data)
 
-	for i := uint64(0); i < needed; i++ {
+	needed := (len(payload) + types.PageSize - 1) / types.PageSize
+	for i := 0; i < needed; i++ {
 		page := &types.Page{ID: types.PageID(i)}
 		start := i * types.PageSize
 		end := start + types.PageSize
-		if end > uint64(len(payload)) {
-			end = uint64(len(payload))
+		if end > len(payload) {
+			end = len(payload)
 		}
 		copy(page.Data[:], payload[start:end])
 
 		if err := s.engine.WritePage(page); err != nil {
 			return fmt.Errorf("write page %d: %w", i, err)
+		}
+	}
+
+	// Clear remaining schema pages
+	for i := needed; i < storage.SchemaPages; i++ {
+		page := &types.Page{ID: types.PageID(i)}
+		if err := s.engine.WritePage(page); err != nil {
+			return fmt.Errorf("clear page %d: %w", i, err)
 		}
 	}
 
