@@ -77,7 +77,7 @@ func TestWriteReadBack(t *testing.T) {
 		page.Data[i] = byte(i)
 	}
 
-	if err := engine.WritePage(id, page); err != nil {
+		if err := engine.WritePage(page); err != nil {
 		t.Fatal(err)
 	}
 
@@ -125,7 +125,7 @@ func TestMultiplePages(t *testing.T) {
 			page.Data[j] = byte(i)
 		}
 		pages[i] = page
-		if err := engine.WritePage(id, page); err != nil {
+	if err := engine.WritePage(page); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -153,7 +153,7 @@ func TestSync(t *testing.T) {
 
 	id, _ := engine.AllocatePage()
 	page := &types.Page{ID: id}
-	engine.WritePage(id, page)
+	engine.WritePage(page)
 
 	if err := engine.Sync(); err != nil {
 		t.Fatal(err)
@@ -174,7 +174,7 @@ func TestCloseReopen(t *testing.T) {
 	for i := range page.Data {
 		page.Data[i] = 42
 	}
-	engine.WritePage(id, page)
+	engine.WritePage(page)
 	engine.Close()
 
 	engine2, err := NewLocalFileEngine(path)
@@ -211,7 +211,7 @@ func TestClosePreventsOps(t *testing.T) {
 		t.Errorf("expected ErrFileClosed, got %v", err)
 	}
 
-	err = engine.WritePage(0, &types.Page{})
+	err = engine.WritePage(&types.Page{})
 	if err != ErrFileClosed {
 		t.Errorf("expected ErrFileClosed, got %v", err)
 	}

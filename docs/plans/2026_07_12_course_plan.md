@@ -84,7 +84,7 @@ prac-go-sql-db/
   ```go
   type StorageEngine interface {
       ReadPage(pageID uint64) (*Page, error)
-      WritePage(pageID uint64, page *Page) error
+      WritePage(page *Page) error
       AllocatePage() (uint64, error)
       Sync() error
       Close() error

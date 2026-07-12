@@ -52,7 +52,7 @@ mydb/pages/2
 // pkg/engine/storage/s3.go
 func NewS3StorageEngine(cfg S3Config) (*S3StorageEngine, error)
 func (e *S3StorageEngine) ReadPage(id types.PageID) (*types.Page, error)
-func (e *S3StorageEngine) WritePage(id types.PageID, page *types.Page) error
+func (e *S3StorageEngine) WritePage(page *types.Page) error
 func (e *S3StorageEngine) AllocatePage() (types.PageID, error)
 func (e *S3StorageEngine) Sync() error   // no-op, S3 is durable
 func (e *S3StorageEngine) Close() error
@@ -69,7 +69,7 @@ func (e *S3StorageEngine) writeHeader() error
 |--------|----------|
 | `NewS3StorageEngine` | Create S3 client, check if header exists, create if not |
 | `ReadPage(id)` | GetObject from `{prefix}pages/{id}`, read into Page |
-| `WritePage(id)` | PutObject to `{prefix}pages/{id}` |
+| `WritePage(page)` | PutObject to `{prefix}pages/{page.ID}` |
 | `AllocatePage()` | Read header, increment PageCount, PutObject header |
 | `Sync()` | No-op (S3 provides durability) |
 | `Close()` | Mark closed, no further ops |

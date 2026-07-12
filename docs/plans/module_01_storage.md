@@ -27,7 +27,7 @@ type Page struct {
 // pkg/engine/storage/engine.go
 type StorageEngine interface {
     ReadPage(id PageID) (*Page, error)
-    WritePage(id PageID, page *Page) error
+    WritePage(page *Page) error
     AllocatePage() (PageID, error)
     Sync() error
     Close() error
@@ -58,7 +58,7 @@ type StorageEngine interface {
 |--------|----------|
 | `NewLocalFileEngine(path)` | Create/open file, read/validate header |
 | `ReadPage(id)` | Seek to offset, read 4KB into `Page.Data` |
-| `WritePage(id, page)` | Seek to offset, write `Page.Data` |
+| `WritePage(page)` | Seek to offset, write `Page.Data` using `page.ID` |
 | `AllocatePage()` | Increment header PageCount, write header, return new ID |
 | `Sync()` | `file.Sync()` — force OS flush to disk |
 | `Close()` | Write header, sync, close file |
@@ -125,6 +125,7 @@ PASS  ok  0.468s
 
 ### Design notes for future modules
 
+- **`WritePage(page)` not `WritePage(id, page)`** — page already has ID, no redundancy
 - **`ReadAt`/`WriteAt` over `Seek`+`Read`/`Write`** — avoids shared offset state, safe when buffer pool adds concurrent access
 - **PageID starts at 0** — data page 0 is at file offset `1 * PageSize` (after header)
 - **AllocatePage writes header immediately** — simple, small overhead, ensures page count persists even on crash

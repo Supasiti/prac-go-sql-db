@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/tharatornsupasiti/prac-go-sql-db/pkg/types"
@@ -13,6 +14,7 @@ var (
 	ErrFileClosed   = errors.New("engine closed")
 	ErrPageNotFound = errors.New("page not allocated")
 	ErrBadMagic     = errors.New("invalid file header")
+	ErrCorruptedPage = errors.New("page data corrupted")
 )
 
 var magic = [4]byte{'G', 'S', 'Q', 'L'}
@@ -78,23 +80,26 @@ func (e *LocalFileEngine) ReadPage(id types.PageID) (*types.Page, error) {
 	page := &types.Page{ID: id}
 
 	if _, err := e.file.ReadAt(page.Data[:], offset); err != nil {
+		if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF) {
+			return nil, fmt.Errorf("read page %d: %w", id, ErrCorruptedPage)
+		}
 		return nil, fmt.Errorf("read page %d: %w", id, err)
 	}
 
 	return page, nil
 }
 
-func (e *LocalFileEngine) WritePage(id types.PageID, page *types.Page) error {
+func (e *LocalFileEngine) WritePage(page *types.Page) error {
 	if e.closed {
 		return ErrFileClosed
 	}
-	if uint64(id) >= e.header.PageCount {
+	if uint64(page.ID) >= e.header.PageCount {
 		return ErrPageNotFound
 	}
 
-	offset := int64((uint64(id) + 1)) * types.PageSize
+	offset := int64((uint64(page.ID) + 1)) * types.PageSize
 	if _, err := e.file.WriteAt(page.Data[:], offset); err != nil {
-		return fmt.Errorf("write page %d: %w", id, err)
+		return fmt.Errorf("write page %d: %w", page.ID, err)
 	}
 
 	return nil
