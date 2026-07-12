@@ -11,9 +11,9 @@ import (
 )
 
 var (
-	ErrFileClosed   = errors.New("engine closed")
-	ErrPageNotFound = errors.New("page not allocated")
-	ErrBadMagic     = errors.New("invalid file header")
+	ErrFileClosed    = errors.New("engine closed")
+	ErrPageNotFound  = errors.New("page not allocated")
+	ErrBadMagic      = errors.New("invalid file header")
 	ErrCorruptedPage = errors.New("page data corrupted")
 )
 
@@ -22,13 +22,15 @@ var magic = [4]byte{'G', 'S', 'Q', 'L'}
 const headerSize = types.PageSize
 
 type header struct {
-	Magic     [4]byte
-	PageCount uint64
-	Version   uint32
-	_         [headerSize - 4 - 8 - 4]byte // padding
+	Magic         [4]byte
+	PageCount     uint64
+	SchemaPageCount uint64
+	Version       uint32
+	_             [headerSize - 4 - 8 - 8 - 4]byte // padding
 }
 
 type LocalFileEngine struct {
+	path   string
 	file   *os.File
 	header header
 	closed bool
@@ -40,7 +42,7 @@ func NewLocalFileEngine(path string) (*LocalFileEngine, error) {
 		return nil, fmt.Errorf("open file: %w", err)
 	}
 
-	engine := &LocalFileEngine{file: f}
+	engine := &LocalFileEngine{path: path, file: f}
 
 	stat, err := f.Stat()
 	if err != nil {
@@ -120,11 +122,47 @@ func (e *LocalFileEngine) AllocatePage() (types.PageID, error) {
 	return id, nil
 }
 
+func (e *LocalFileEngine) AllocateSchemaPage() (types.PageID, error) {
+	if e.closed {
+		return 0, ErrFileClosed
+	}
+
+	id := types.PageID(e.header.SchemaPageCount)
+	if uint64(id) < e.header.PageCount {
+		return 0, fmt.Errorf("schema page %d already allocated as data page", id)
+	}
+
+	e.header.SchemaPageCount++
+	e.header.PageCount++
+
+	if err := e.writeHeader(); err != nil {
+		return 0, fmt.Errorf("write header: %w", err)
+	}
+
+	return id, nil
+}
+
+func (e *LocalFileEngine) SetSchemaPageCount(count uint64) error {
+	if e.closed {
+		return ErrFileClosed
+	}
+	e.header.SchemaPageCount = count
+	return e.writeHeader()
+}
+
+func (e *LocalFileEngine) SchemaPageCount() uint64 {
+	return e.header.SchemaPageCount
+}
+
 func (e *LocalFileEngine) Sync() error {
 	if e.closed {
 		return ErrFileClosed
 	}
 	return e.file.Sync()
+}
+
+func (e *LocalFileEngine) Path() string {
+	return e.path
 }
 
 func (e *LocalFileEngine) Close() error {
@@ -152,7 +190,8 @@ func (e *LocalFileEngine) readHeader() error {
 
 	e.header.Magic = [4]byte{buf[0], buf[1], buf[2], buf[3]}
 	e.header.PageCount = binary.LittleEndian.Uint64(buf[4:12])
-	e.header.Version = binary.LittleEndian.Uint32(buf[12:16])
+	e.header.SchemaPageCount = binary.LittleEndian.Uint64(buf[12:20])
+	e.header.Version = binary.LittleEndian.Uint32(buf[20:24])
 	return nil
 }
 
@@ -160,7 +199,8 @@ func (e *LocalFileEngine) writeHeader() error {
 	var buf [headerSize]byte
 	copy(buf[0:4], e.header.Magic[:])
 	binary.LittleEndian.PutUint64(buf[4:12], e.header.PageCount)
-	binary.LittleEndian.PutUint32(buf[12:16], e.header.Version)
+	binary.LittleEndian.PutUint64(buf[12:20], e.header.SchemaPageCount)
+	binary.LittleEndian.PutUint32(buf[20:24], e.header.Version)
 
 	_, err := e.file.WriteAt(buf[:], 0)
 	return err

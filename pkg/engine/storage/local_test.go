@@ -34,6 +34,9 @@ func TestCreateNewFile(t *testing.T) {
 	if engine.header.PageCount != 0 {
 		t.Errorf("page count = %d, want 0", engine.header.PageCount)
 	}
+	if engine.header.SchemaPageCount != 0 {
+		t.Errorf("schema page count = %d, want 0", engine.header.SchemaPageCount)
+	}
 	if engine.header.Version != 1 {
 		t.Errorf("version = %d, want 1", engine.header.Version)
 	}
@@ -77,7 +80,7 @@ func TestWriteReadBack(t *testing.T) {
 		page.Data[i] = byte(i)
 	}
 
-		if err := engine.WritePage(page); err != nil {
+	if err := engine.WritePage(page); err != nil {
 		t.Fatal(err)
 	}
 
@@ -125,7 +128,7 @@ func TestMultiplePages(t *testing.T) {
 			page.Data[j] = byte(i)
 		}
 		pages[i] = page
-	if err := engine.WritePage(page); err != nil {
+		if err := engine.WritePage(page); err != nil {
 			t.Fatal(err)
 		}
 	}
