@@ -129,3 +129,7 @@ func (p *Pool) PinCount(id types.PageID) int {
 	}
 	return 0
 }
+
+func (p *Pool) Sync() error {
+	return p.engine.Sync()
+}
