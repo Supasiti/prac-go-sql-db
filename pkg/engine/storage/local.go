@@ -120,6 +120,11 @@ func (e *LocalFileEngine) AllocatePage() (types.PageID, error) {
 		return 0, fmt.Errorf("write header: %w", err)
 	}
 
+	page := &types.Page{ID: id}
+	if err := e.WritePage(page); err != nil {
+		return 0, fmt.Errorf("write blank page: %w", err)
+	}
+
 	return id, nil
 }
 

@@ -133,3 +133,7 @@ func (p *Pool) PinCount(id types.PageID) int {
 func (p *Pool) Sync() error {
 	return p.engine.Sync()
 }
+
+func (p *Pool) AllocatePage() (types.PageID, error) {
+	return p.engine.AllocatePage()
+}
